@@ -383,3 +383,11 @@ class PersistentSQLiteStore:
                         setattr(transaction, key, value)
                 return True
             return False
+
+    def clear_user_transactions(self, user_id: str) -> int:
+        """Remove todas as transações do usuário e retorna a quantidade apagada."""
+        with self.get_session() as session:
+            deleted = session.query(Transaction).filter(
+                Transaction.user_id == user_id
+            ).delete(synchronize_session=False)
+            return int(deleted)

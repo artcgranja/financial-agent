@@ -46,6 +46,23 @@ class SearchTransactionsInput(BaseModel):
     limit: int = Field(5, description="Número máximo de resultados")
 
 
+class UpdateTransactionInput(BaseModel):
+    transaction_id: int = Field(..., description="ID da transação a editar")
+    amount: Optional[float] = Field(None, description="Novo valor (opcional)")
+    type: Optional[Literal["income", "expense"]] = Field(None, description="Novo tipo (opcional)")
+    category: Optional[str] = Field(None, description="Nova categoria (opcional)")
+    description: Optional[str] = Field(None, description="Nova descrição (opcional)")
+    date_str: Optional[str] = Field(None, description="Nova data em 'YYYY-MM-DD' ou 'DD/MM/YYYY' (opcional)")
+
+
+class DeleteTransactionInput(BaseModel):
+    transaction_id: int = Field(..., description="ID da transação a apagar")
+
+
+class ClearUserHistoryInput(BaseModel):
+    confirm: Literal["SIM", "NAO"] = Field(..., description="Confirmação explícita: 'SIM' para confirmar a limpeza total")
+
+
 # ---------------- Helpers ----------------
 def _format_brl(value: float) -> str:
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -257,6 +274,82 @@ def _make_search_transactions(store: PersistentSQLiteStore, user_id: str) -> Str
     )
 
 
+def _make_update_transaction(store: PersistentSQLiteStore, user_id: str) -> StructuredTool:
+    def run(transaction_id: int, amount: Optional[float] = None, type: Optional[Literal["income", "expense"]] = None, category: Optional[str] = None, description: Optional[str] = None, date_str: Optional[str] = None) -> str:
+        try:
+            transaction_date = None
+            if date_str:
+                try:
+                    transaction_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                except ValueError:
+                    try:
+                        transaction_date = datetime.strptime(date_str, "%d/%m/%Y").date()
+                    except ValueError:
+                        pass
+            fields: Dict[str, Any] = {}
+            if amount is not None:
+                fields["amount"] = abs(amount)
+            if type is not None:
+                fields["type"] = type
+            if category is not None:
+                fields["category"] = category
+            if description is not None:
+                fields["description"] = description
+            if transaction_date is not None:
+                fields["date"] = transaction_date
+            if not fields:
+                return "ℹ️ Nenhuma alteração informada."
+            ok = store.update_transaction(user_id=user_id, transaction_id=transaction_id, **fields)
+            if not ok:
+                return f"❌ Transação #{transaction_id} não encontrada para este usuário."
+            return f"✅ Transação #{transaction_id} atualizada com sucesso."
+        except Exception as e:
+            return f"❌ Erro ao atualizar transação: {str(e)}"
+
+    return StructuredTool.from_function(
+        name="update_transaction",
+        description="Edita campos de uma transação existente pelo ID.",
+        func=run,
+        args_schema=UpdateTransactionInput,
+    )
+
+
+def _make_delete_transaction(store: PersistentSQLiteStore, user_id: str) -> StructuredTool:
+    def run(transaction_id: int) -> str:
+        try:
+            ok = store.delete_transaction(user_id=user_id, transaction_id=transaction_id)
+            if not ok:
+                return f"❌ Transação #{transaction_id} não encontrada para este usuário."
+            return f"🗑️ Transação #{transaction_id} apagada com sucesso."
+        except Exception as e:
+            return f"❌ Erro ao apagar transação: {str(e)}"
+
+    return StructuredTool.from_function(
+        name="delete_transaction",
+        description="Apaga uma transação específica pelo ID.",
+        func=run,
+        args_schema=DeleteTransactionInput,
+    )
+
+
+def _make_clear_user_history(store: PersistentSQLiteStore, user_id: str) -> StructuredTool:
+    def run(confirm: Literal["SIM", "NAO"]) -> str:
+        try:
+            if confirm != "SIM":
+                return "⚠️ Operação cancelada. Para confirmar a limpeza total, envie confirm='SIM'."
+            count = store.clear_user_transactions(user_id=user_id)
+            return f"🧹 Histórico apagado com sucesso. {count} transação(ões) removida(s)."
+        except Exception as e:
+            return f"❌ Erro ao limpar histórico: {str(e)}"
+
+    return StructuredTool.from_function(
+        name="clear_user_history",
+        description="Apaga TODAS as transações do usuário atual (requer confirm='SIM').",
+        func=run,
+        args_schema=ClearUserHistoryInput,
+    )
+
+
 def create_financial_tools(
     store: PersistentSQLiteStore, user_id: str, thread_id: Optional[str] = None
 ) -> List[StructuredTool]:
@@ -269,4 +362,7 @@ def create_financial_tools(
         _make_list_transactions(store, user_id),
         _make_get_category_summary(store, user_id),
         _make_search_transactions(store, user_id),
+        _make_update_transaction(store, user_id),
+        _make_delete_transaction(store, user_id),
+        _make_clear_user_history(store, user_id),
     ]
