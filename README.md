@@ -15,7 +15,7 @@ An intelligent assistant for personal finance tracking using LangGraph and LLMs,
 
 ### 1) Clone the repository
 ```bash
-git clone <your-repo>
+git clone https://github.com/artcgranja/financial-agent
 cd financial-agent
 ```
 
