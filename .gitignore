@@ -5,6 +5,8 @@ __pycache__/
 
 # database
 *.db
+*.db-shm
+*.db-wal
 
 # C extensions
 *.so

@@ -41,7 +41,7 @@ def main() -> None:
     print(_format_cmds())
 
     # Cria agente (sem tools; com checkpointer sqlite + store persistente se você já integrou)
-    agent = make_agent()
+    agent, store = make_agent(thread_id=thread_id)
 
     # Ctrl+C amigável
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
