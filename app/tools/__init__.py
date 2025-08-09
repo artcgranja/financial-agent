@@ -1,6 +1,6 @@
 # app/tools/__init__.py
 """
-Módulo de ferramentas para o agente financeiro
+Tools module for the financial agent
 """
 from .financial_tools import create_financial_tools
 

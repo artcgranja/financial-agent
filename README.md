@@ -1,205 +1,211 @@
-## 💰 Assistente Financeiro Pessoal com LangGraph
+## 💰 Personal Finance Assistant with LangGraph
 
-Um assistente inteligente para controle de finanças pessoais usando LangGraph e LLMs, com persistência de dados e processamento de linguagem natural. As ferramentas foram refatoradas para usar Pydantic (schemas claros) e StructuredTool, facilitando manutenção e validação de entradas.
+An intelligent assistant for personal finance tracking using LangGraph and LLMs, with persistent storage and natural language processing. Tools are implemented with Pydantic schemas and StructuredTool for clear validation and maintainability.
 
-## 🎯 Funcionalidades
+## 🎯 Features
 
-- ✅ **Registro natural de transações** - Adicione receitas e despesas conversando naturalmente
-- 📊 **Resumos automáticos** - Visualize balanços por período (dia, semana, mês, ano)
-- 🏷️ **Categorização inteligente** - Categorias inferidas automaticamente pela descrição
-- 💾 **Persistência completa** - Dados salvos em SQLite com SQLAlchemy ORM
-- 🔍 **Busca e filtros** - Encontre transações específicas facilmente
-- 📈 **Análise por categoria** - Entenda onde está gastando mais
+- ✅ **Natural transaction logging** — Add incomes and expenses through natural conversation
+- 📊 **Automatic summaries** — View balances by period (day, week, month, year)
+- 🏷️ **Smart categorization** — Categories inferred from the description
+- 💾 **Full persistence** — Data stored in SQLite with SQLAlchemy ORM
+- 🔍 **Search and filters** — Quickly find specific transactions
+- 📈 **Category analysis** — Understand where most of your spending goes
 
-## 🚀 Instalação
+## 🚀 Installation
 
-### 1) Clone o repositório
+### 1) Clone the repository
 ```bash
-git clone <seu-repositorio>
+git clone <your-repo>
 cd financial-agent
 ```
 
-### 2) Ambiente virtual
-Com venv (pip):
+### 2) Virtual environment
+With venv (pip):
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```
 
-Ou com uv (opcional):
+Or with uv (optional):
 ```bash
 uv venv
 source .venv/bin/activate
 ```
 
-### 3) Dependências
+### 3) Dependencies
 ```bash
 pip install -r requirements.txt
-# ou, usando pyproject + uv
+# or with pyproject + uv
 # uv sync
 ```
 
-### 4) Variáveis de ambiente
-Crie um arquivo `.env` na raiz com suas chaves e configurações:
+### 4) Environment variables
+Create a `.env` file at the project root with your keys and settings:
 ```env
-# Provedor e chave do LLM
-# Para Claude (Anthropic)
+# LLM provider and key
+# For Claude (Anthropic)
 MODEL_NAME=anthropic:claude-sonnet-4-20250514
-ANTHROPIC_API_KEY=sua_chave_aqui
+ANTHROPIC_API_KEY=your_key_here
 
-# OU para GPT (OpenAI)
+# OR for GPT (OpenAI)
 # MODEL_NAME=openai:gpt-4o-mini
-# OPENAI_API_KEY=sua_chave_aqui
+# OPENAI_API_KEY=your_key_here
 
-# Opcionais
+# Optional
 TZ=America/Sao_Paulo
-USER_NAME=Usuário
+USER_NAME=User
 CHECKPOINT_DB=checkpoint.db
 STORE_DB=financial_store.db
 ```
 
-## 💬 Uso
+## 💬 Usage
 
-### Modo Interativo (Terminal)
+### Interactive mode (Terminal)
 ```bash
-# usando Python diretamente
+# using Python directly
 python scripts/chat.py
 
-# ou com uv (recomendado)
+# or with uv (recommended)
 uv run scripts/chat.py
 ```
 
-### Exemplo de Conversas
+### Conversation examples
 ```
-Você: Gastei 45 reais no almoço hoje
-Bot: ✅ Despesa registrada! R$ 45,00 em Alimentação
+You: I spent 45 on lunch today
+Bot: ✅ Expense recorded! R$ 45.00 in Alimentação
 
-Você: Recebi meu salário de 5000
-Bot: ✅ Receita registrada! R$ 5.000,00 (Salário)
+You: I received my salary of 5000
+Bot: ✅ Income recorded! R$ 5,000.00 (Salário)
 
-Você: Quanto gastei este mês?
-Bot: 📊 Este mês: Receitas R$ 5.000, Despesas R$ 1.234, Saldo R$ 3.766
+You: How much did I spend this month?
+Bot: 📊 This month: Income R$ 5,000, Expenses R$ 1,234, Balance R$ 3,766
 ```
 
-### Uso Programático
+### Programmatic usage
 ```python
 from app.agent import make_agent
 from app.session import make_config, make_context
 
-# Criar agente e store
-agent, store = make_agent(user_id="meu_usuario")
+# Create agent and store
+agent, store = make_agent(user_id="my_user")
 
-# Config e contexto
-cfg = make_config(thread_id="sessao_001", user_id="meu_usuario")
-ctx = make_context(user_id="meu_usuario", timezone="America/Sao_Paulo")
+# Config and context
+cfg = make_config(thread_id="session_001", user_id="my_user")
+ctx = make_context(user_id="my_user", timezone="America/Sao_Paulo")
 
-# Enviar mensagem
+# Send a message
 result = agent.invoke(
-    {"messages": [{"role": "user", "content": "Gastei 100 reais no mercado"}]},
+    {"messages": [{"role": "user", "content": "I spent 100 at the supermarket"}]},
     config=cfg,
     context=ctx,
 )
 print(result)
 ```
 
-## 📁 Estrutura do Projeto
+## 📁 Project structure
 
 ```text
 financial-agent/
 ├── app/
-│   ├── agent.py                # Agente principal LangGraph
-│   ├── session.py              # Helpers de sessão/stream
-│   ├── store.py                # ORM e persistência com SQLAlchemy
+│   ├── agent.py                # Main LangGraph agent
+│   ├── session.py              # Session/stream helpers
+│   ├── store.py                # ORM and persistence with SQLAlchemy
 │   └── tools/
 │       ├── __init__.py
-│       └── financial_tools.py  # Ferramentas (StructuredTool + Pydantic)
+│       └── financial_tools.py  # Tools (StructuredTool + Pydantic)
 ├── scripts/
-│   └── chat.py                 # CLI interativo
-├── requirements.txt            # Dependências
-├── pyproject.toml              # Configuração do projeto (opcional)
+│   └── chat.py                 # Interactive CLI
+├── requirements.txt            # Dependencies
+├── pyproject.toml              # Project configuration (optional)
 └── README.md
 ```
 
-## 🛠️ Ferramentas (Schemas Pydantic)
+## 🛠️ Tools (Pydantic Schemas)
 
-As tools expostas ao agente possuem validação por schema via Pydantic.
+All tools exposed to the agent use Pydantic schemas for validation.
 
 - **add_transaction**
   - required: `amount: float`, `type: "income"|"expense"`
-  - optional: `category: str`, `description: str`, `date_str: str (YYYY-MM-DD ou DD/MM/YYYY)`
+  - optional: `category: str`, `description: str`, `date_str: str (YYYY-MM-DD or DD/MM/YYYY)`
 - **get_balance**
   - `period: "today"|"week"|"month"|"year"|"all"` (default: `month`)
 - **list_transactions**
-  - `limit: int` (default: 10), `type: "income"|"expense"` (opcional), `period` (opcional), `category` (opcional)
+  - `limit: int` (default: 10), `type: "income"|"expense"` (optional), `period` (optional), `category` (optional)
 - **get_category_summary**
   - `period: "today"|"week"|"month"|"year"` (default: `month`)
 - **search_transactions**
   - `search_term: str`, `limit: int` (default: 5)
+- **update_transaction**
+  - `transaction_id: int` and optional fields to update: `amount`, `type`, `category`, `description`, `date_str`
+- **delete_transaction**
+  - `transaction_id: int`
+- **clear_user_history**
+  - `confirm: "SIM"|"NAO"` — requires `SIM` to proceed
 
-## 🗄️ Banco de Dados
+## 🗄️ Database
 
-O sistema usa duas bases SQLite:
+Two SQLite databases are used:
 
-### `financial_store.db` — Transações
-- Tabela `transactions`: Todas as transações financeiras
-- Tabela `category_mappings`: Mapeamentos de palavras-chave
+### `financial_store.db` — Transactions
+- Table `transactions`: All financial transactions
+- Table `category_mappings`: Keyword mappings
 
-### `checkpoint.db` — Estado do LangGraph
-- Mantém contexto das conversas
-- Permite retomar sessões
+### `checkpoint.db` — LangGraph state
+- Maintains conversation context
+- Allows resuming sessions
 
-## 🎨 Categorias Padrão
+## 🎨 Default categories
 
-### Despesas
+### Expenses
 - Alimentação, Transporte, Moradia
 - Saúde, Educação, Lazer
 - Compras, Serviços, Assinaturas
 
-### Receitas
+### Income
 - Salário, Freelance, Investimentos
 - Vendas, Reembolso, Presente
 
-## 🔧 Configuração Avançada
+## 🔧 Advanced configuration
 
-### Adicionar Novas Categorias
+### Add new categories
 ```python
-# Em store.py, adicione ao CATEGORY_KEYWORDS
+# In store.py, add to CATEGORY_KEYWORDS
 'padaria': ('Alimentação', 'expense'),
 'bonus': ('Salário', 'income'),
 ```
 
-### Customizar System Prompt
+### Customize system prompt
 ```python
-# Em agent.py, modifique SYSTEM_PROMPT
-SYSTEM_PROMPT = "Seu prompt customizado aqui..."
+# In agent.py, modify SYSTEM_PROMPT
+SYSTEM_PROMPT = "Your custom prompt here..."
 ```
 
 ## 📈 Roadmap
 
-- [ ] Interface web com Streamlit/Gradio
-- [ ] Gráficos e visualizações
-- [ ] Exportação para Excel/PDF
-- [ ] Metas e orçamentos
-- [ ] Alertas e notificações
-- [ ] Importação de extratos bancários
-- [ ] Multi-usuário com autenticação
+- [ ] Web UI with Streamlit/Gradio
+- [ ] Charts and visualizations
+- [ ] Export to Excel/PDF
+- [ ] Goals and budgets
+- [ ] Alerts and notifications
+- [ ] Bank statement import
+- [ ] Multi-user with authentication
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-Contribuições são bem-vindas! Por favor:
-1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request
+Contributions are welcome! Please:
+1. Fork the project
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
-## 📝 Licença
+## 📝 License
 
-Este projeto está sob a licença MIT.
+This project is licensed under the MIT License.
 
-## 🆘 Suporte
+## 🆘 Support
 
-Para dúvidas ou problemas:
-- Abra uma issue no GitHub
-- Consulte a documentação do LangGraph
-- Verifique os logs em modo DEBUG
+For questions or issues:
+- Open a GitHub issue
+- Check LangGraph documentation
+- Inspect logs in DEBUG mode

@@ -1,6 +1,6 @@
 # app/store.py
 """
-Store persistente usando SQLAlchemy ORM para armazenar transações financeiras
+Persistent store using SQLAlchemy ORM for financial transactions.
 """
 import os
 from datetime import datetime, date, timedelta
@@ -15,13 +15,13 @@ from contextlib import contextmanager
 Base = declarative_base()
 
 class Transaction(Base):
-    """Modelo para transações financeiras"""
+    """Financial transaction model"""
     __tablename__ = 'transactions'
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(100), nullable=False)
     amount = Column(Float, nullable=False)
-    type = Column(String(10), nullable=False)  # 'income' ou 'expense'
+    type = Column(String(10), nullable=False)  # 'income' or 'expense'
     category = Column(String(50), nullable=False)
     description = Column(Text, nullable=True)
     date = Column(Date, nullable=False, default=date.today)
@@ -29,7 +29,7 @@ class Transaction(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     
-    # Índices para performance
+    # Indexes for performance
     __table_args__ = (
         Index('idx_user_date', 'user_id', 'date'),
         Index('idx_user_category', 'user_id', 'category'),
@@ -38,7 +38,7 @@ class Transaction(Base):
     )
     
     def to_dict(self) -> Dict[str, Any]:
-        """Converte a transação para dicionário"""
+        """Convert transaction to plain dict"""
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -53,13 +53,13 @@ class Transaction(Base):
 
 
 class CategoryMapping(Base):
-    """Modelo para mapeamento automático de categorias"""
+    """Category auto-mapping model"""
     __tablename__ = 'category_mappings'
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     keyword = Column(String(100), unique=True, nullable=False)
     category = Column(String(50), nullable=False)
-    type = Column(String(10), nullable=False)  # 'income' ou 'expense'
+    type = Column(String(10), nullable=False)  # 'income' or 'expense'
     
     __table_args__ = (
         Index('idx_keyword', 'keyword'),
@@ -67,9 +67,9 @@ class CategoryMapping(Base):
 
 
 class PersistentSQLiteStore:
-    """Store persistente usando SQLAlchemy para gerenciar transações financeiras"""
+    """Persistent store based on SQLAlchemy to manage financial transactions"""
     
-    # Categorias padrão do sistema
+    # System default categories
     DEFAULT_CATEGORIES = {
         'expense': [
             'Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Educação',
@@ -81,7 +81,7 @@ class PersistentSQLiteStore:
         ]
     }
     
-    # Mapeamento de palavras-chave para categorias
+    # Keyword-to-category mapping
     CATEGORY_KEYWORDS = {
         # Despesas - Alimentação
         'almoço': ('Alimentação', 'expense'),
@@ -128,7 +128,7 @@ class PersistentSQLiteStore:
     }
     
     def __init__(self, db_path: str = "financial_store.db"):
-        """Inicializa o store com SQLAlchemy"""
+        """Initialize store with SQLAlchemy"""
         self.db_path = db_path
         self.engine = create_engine(
             f'sqlite:///{db_path}',
@@ -136,22 +136,22 @@ class PersistentSQLiteStore:
             echo=False  # Mude para True para debug
         )
         
-        # Criar tabelas se não existirem
+        # Create tables if not exist
         Base.metadata.create_all(self.engine)
         
-        # Criar session factory
+        # Create session factory
         self.SessionLocal = scoped_session(sessionmaker(
             autocommit=False,
             autoflush=False,
             bind=self.engine
         ))
         
-        # Inicializar mapeamentos de categoria
+        # Initialize category mappings
         self._init_category_mappings()
     
     @contextmanager
     def get_session(self):
-        """Context manager para gerenciar sessões do SQLAlchemy"""
+        """Context manager for SQLAlchemy sessions"""
         session = self.SessionLocal()
         try:
             yield session
@@ -163,10 +163,10 @@ class PersistentSQLiteStore:
             session.close()
     
     def _init_category_mappings(self):
-        """Inicializa os mapeamentos de categoria no banco"""
+        """Initialize keyword mappings in the database"""
         with self.get_session() as session:
             for keyword, (category, trans_type) in self.CATEGORY_KEYWORDS.items():
-                # Verificar se já existe
+                # Check if exists
                 existing = session.query(CategoryMapping).filter_by(keyword=keyword).first()
                 if not existing:
                     mapping = CategoryMapping(
@@ -177,7 +177,7 @@ class PersistentSQLiteStore:
                     session.add(mapping)
     
     def infer_category(self, description: str) -> tuple[str, str]:
-        """Infere categoria e tipo baseado na descrição"""
+        """Infer category and type based on description"""
         if not description:
             return ('Outros', 'expense')
         
@@ -202,7 +202,7 @@ class PersistentSQLiteStore:
         transaction_date: Optional[date] = None,
         thread_id: Optional[str] = None
     ) -> int:
-        """Adiciona uma nova transação"""
+        """Add a new transaction"""
         with self.get_session() as session:
             transaction = Transaction(
                 user_id=user_id,
@@ -222,9 +222,9 @@ class PersistentSQLiteStore:
         user_id: str,
         period: Literal["today", "week", "month", "year", "all"] = "month"
     ) -> Dict[str, float]:
-        """Obtém o balanço do período especificado"""
+        """Get balance for a given period"""
         with self.get_session() as session:
-            # Determinar data inicial baseada no período
+            # Determine start date based on period
             today = date.today()
             if period == "today":
                 start_date = today
@@ -237,14 +237,14 @@ class PersistentSQLiteStore:
             else:  # all
                 start_date = date(2000, 1, 1)
             
-            # Query para receitas
+            # Income query
             income = session.query(func.sum(Transaction.amount)).filter(
                 Transaction.user_id == user_id,
                 Transaction.type == 'income',
                 Transaction.date >= start_date
             ).scalar() or 0.0
             
-            # Query para despesas
+            # Expense query
             expenses = session.query(func.sum(Transaction.amount)).filter(
                 Transaction.user_id == user_id,
                 Transaction.type == 'expense',
@@ -267,13 +267,13 @@ class PersistentSQLiteStore:
         period: Optional[Literal["today", "week", "month", "year"]] = None,
         category: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Lista transações com filtros opcionais"""
+        """List transactions with optional filters"""
         with self.get_session() as session:
             query = session.query(Transaction).filter(
                 Transaction.user_id == user_id
             )
             
-            # Aplicar filtros
+            # Apply filters
             if type:
                 query = query.filter(Transaction.type == type)
             
@@ -293,7 +293,7 @@ class PersistentSQLiteStore:
                 
                 query = query.filter(Transaction.date >= start_date)
             
-            # Ordenar por data decrescente e aplicar limite
+            # Order by date desc and apply limit
             transactions = query.order_by(Transaction.date.desc()).limit(limit).all()
             
             return [t.to_dict() for t in transactions]
@@ -303,9 +303,9 @@ class PersistentSQLiteStore:
         user_id: str,
         period: Literal["today", "week", "month", "year"] = "month"
     ) -> Dict[str, Dict[str, float]]:
-        """Obtém resumo por categoria"""
+        """Get summary grouped by category"""
         with self.get_session() as session:
-            # Determinar data inicial
+            # Determine start date
             today = date.today()
             if period == "today":
                 start_date = today
@@ -316,7 +316,7 @@ class PersistentSQLiteStore:
             else:  # year
                 start_date = today.replace(month=1, day=1)
             
-            # Query agrupada por categoria e tipo
+            # Aggregated query by category and type
             results = session.query(
                 Transaction.category,
                 Transaction.type,
@@ -352,7 +352,7 @@ class PersistentSQLiteStore:
             return summary
     
     def delete_transaction(self, user_id: str, transaction_id: int) -> bool:
-        """Deleta uma transação específica"""
+        """Delete a specific transaction"""
         with self.get_session() as session:
             transaction = session.query(Transaction).filter(
                 Transaction.id == transaction_id,
@@ -370,7 +370,7 @@ class PersistentSQLiteStore:
         transaction_id: int,
         **kwargs
     ) -> bool:
-        """Atualiza uma transação existente"""
+        """Update an existing transaction"""
         with self.get_session() as session:
             transaction = session.query(Transaction).filter(
                 Transaction.id == transaction_id,

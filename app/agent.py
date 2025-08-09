@@ -1,6 +1,6 @@
 # app/agent.py
 """
-Agente financeiro pessoal usando LangGraph com memória persistente
+Personal financial assistant using LangGraph with persistent memory.
 """
 import os
 import sqlite3
@@ -17,55 +17,55 @@ from app.tools import create_financial_tools
 
 load_dotenv()
 
-# Configurações
+# Settings
 DEFAULT_MODEL = os.getenv("MODEL_NAME", "anthropic:claude-sonnet-4-20250514")
 CHECKPOINT_DB = os.getenv("CHECKPOINT_DB", "checkpoint.db")
 STORE_DB = os.getenv("STORE_DB", "financial_store.db")
 USER_NAME = os.getenv("USER_NAME", "Usuário")
 
-# Timezone e data atual
+# Timezone and current date
 NOW_SP = datetime.now(ZoneInfo(os.getenv("TZ", "America/Sao_Paulo")))
 TODAY_DATE = NOW_SP.strftime("%d/%m/%Y %H:%M:%S %Z")
 
-# System prompt otimizado para tracking financeiro
-SYSTEM_PROMPT = f"""Você é um assistente pessoal especializado em controle financeiro.
+# System prompt (English)
+SYSTEM_PROMPT = f"""You are a personal assistant specialized in personal finance tracking.
 
-CONTEXTO:
-- Usuário: {USER_NAME}
-- Data/hora atual: {TODAY_DATE}
-- Moeda: Real Brasileiro (R$)
+CONTEXT:
+- User: {USER_NAME}
+- Current date/time: {TODAY_DATE}
+- Currency: Brazilian Real (R$)
 
-RESPONSABILIDADES PRINCIPAIS:
-1. Registrar receitas e despesas mencionadas na conversa
-2. Fornecer resumos e análises quando solicitado
-3. Ajudar a categorizar transações automaticamente
-4. Responder perguntas sobre o estado financeiro
+PRIMARY RESPONSIBILITIES:
+1) Record incomes and expenses mentioned in the conversation
+2) Provide summaries and analyses upon request
+3) Help categorize transactions automatically
+4) Answer questions about the financial status
 
-DIRETRIZES DE INTERAÇÃO:
-- Seja conciso e amigável
-- Sempre confirme valores registrados
-- Use formato brasileiro para moeda (R$ 1.234,56)
-- Se a data não for mencionada, assuma "hoje"
-- Infira categoria quando possível pela descrição
-- Pergunte detalhes apenas se essencial
+INTERACTION GUIDELINES:
+- Be concise and friendly
+- Always confirm recorded values
+- Use Brazilian currency format (R$ 1.234,56)
+- If no date is mentioned, assume "today"
+- Infer category when possible from the description
+- Ask for more details only if essential
 
-CATEGORIAS PADRÃO:
-- Despesas: Alimentação, Transporte, Moradia, Saúde, Educação, Lazer, Compras, Serviços, Assinaturas
-- Receitas: Salário, Freelance, Investimentos, Vendas, Reembolso, Presente
+DEFAULT CATEGORIES:
+- Expenses: Alimentação, Transporte, Moradia, Saúde, Educação, Lazer, Compras, Serviços, Assinaturas
+- Income: Salário, Freelance, Investimentos, Vendas, Reembolso, Presente
 
-EXEMPLOS DE INTERAÇÃO:
-- "Gastei 45 no almoço" → Registra despesa de R$ 45 em Alimentação
-- "Recebi 5000 de salário" → Registra receita de R$ 5000 em Salário
-- "Paguei 120 de uber este mês" → Registra despesa de R$ 120 em Transporte
+EXAMPLES:
+- "Gastei 45 no almoço" → Record an expense of R$ 45 under Alimentação
+- "Recebi 5000 de salário" → Record an income of R$ 5000 under Salário
+- "Paguei 120 de uber este mês" → Record an expense of R$ 120 under Transporte
 
-IMPORTANTE:
-- Sempre use as ferramentas disponíveis para registrar e consultar dados
-- Não invente valores ou transações - consulte sempre o banco de dados
-- Seja transparente sobre o que foi registrado"""
+IMPORTANT:
+- Always use the available tools to record and query data
+- Do not hallucinate values or transactions — always consult the database
+- Be transparent about what was recorded"""
 
 
 def build_checkpointer(db_path: str = CHECKPOINT_DB) -> SqliteSaver:
-    """Constrói o checkpointer SQLite para persistência de estado do grafo"""
+    """Builds the SQLite checkpointer for graph state persistence."""
     conn = sqlite3.connect(db_path, check_same_thread=False)
     saver = SqliteSaver(conn)
     saver.setup()
@@ -78,38 +78,38 @@ def make_agent(
     thread_id: str = None
 ):
     """
-    Cria o agente financeiro com todas as ferramentas configuradas.
+    Create the financial agent with all tools configured.
     
     Args:
-        model_name: Nome do modelo LLM a usar
-        user_id: ID do usuário (usa USER_NAME do .env se não fornecido)
-        thread_id: ID da thread de conversa
+        model_name: LLM model name
+        user_id: Current user id (defaults to USER_NAME if not provided)
+        thread_id: Conversation thread id
     
     Returns:
-        Agente compilado pronto para uso
+        Compiled agent and the persistent store
     """
-    # Configurar user_id
+    # Configure user_id
     if user_id is None:
         user_id = USER_NAME
     
-    # Inicializar modelo
+    # Initialize model
     model = init_chat_model(model_name, temperature=0)
     
-    # Configurar persistência
+    # Persistence
     checkpointer = build_checkpointer()
     store = PersistentSQLiteStore(STORE_DB)
     
-    # Criar ferramentas financeiras
+    # Create tools
     tools = create_financial_tools(
         store=store,
         user_id=user_id,
         thread_id=thread_id
     )
     
-    # Bind tools ao modelo
+    # Bind tools to the model
     model_with_tools = model.bind_tools(tools, parallel_tool_calls=False)
     
-    # Criar agente ReAct
+    # Create ReAct agent
     agent = create_react_agent(
         model=model_with_tools,
         tools=tools,

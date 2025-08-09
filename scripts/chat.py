@@ -10,17 +10,17 @@ from app.session import make_config, make_context, get_thread_state
 # -------- helpers --------
 def _print_token_chunk(message_chunk: Any) -> None:
     """
-    Imprime os tokens do chunk de mensagens do stream_mode="messages".
-    Lida com content=str ou content=list (multipart).
+    Print token chunks when using stream_mode="messages".
+    Handles content as str or list (multipart).
     """
     content = getattr(message_chunk, "content", "")
     if isinstance(content, str):
-        # token textual direto
+        # direct text token
         print(content, end="", flush=True)
     elif isinstance(content, list):
         # multimodal/text parts
         for part in content:
-            # part é dict do tipo {"type": "text", "text": "..."} em integrações comuns
+            # typical dict part: {"type": "text", "text": "..."}
             if isinstance(part, dict) and part.get("type") == "text" and "text" in part:
                 print(part["text"], end="", flush=True)
 
@@ -34,16 +34,16 @@ def _format_cmds() -> str:
 
 # -------- main loop --------
 def main() -> None:
-    # Novo chat sempre: thread_id = "user1:<uuid4>"
+    # New chat each run: thread_id = "user1:<uuid4>"
     user_id = "user1"
     thread_id = f"{user_id}:{uuid.uuid4()}"
     print(f"🧵 nova thread: {thread_id}")
     print(_format_cmds())
 
-    # Cria agente (sem tools; com checkpointer sqlite + store persistente se você já integrou)
+    # Create agent (with sqlite checkpointer + persistent store)
     agent, store = make_agent(thread_id=thread_id)
 
-    # Ctrl+C amigável
+    # Friendly Ctrl+C
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
 
     while True:
@@ -56,7 +56,7 @@ def main() -> None:
         if not user_text:
             continue
 
-        # Comandos utilitários
+        # Utility commands
         if user_text.lower() in ("/exit", "exit", "quit", ":q"):
             print("👋 saindo…")
             break
@@ -72,7 +72,7 @@ def main() -> None:
             print(f"checkpoint_id atual: {ckpt} | step: {step}")
             continue
 
-        # Config e context para este run
+        # Config and context for this run
         cfg = make_config(thread_id, user_id=user_id)
         ctx = make_context(
             user_id=user_id,
@@ -82,10 +82,10 @@ def main() -> None:
             recursion_limit=6,
         )
 
-        # Stream dos tokens do modelo
+        # Token streaming from model
         print("assistant> ", end="", flush=True)
         try:
-            # stream_mode="messages" para tokens; você pode incluir "updates" p/ debug
+            # stream_mode="messages" for token-level streaming; you may include "updates" for debug
             for mode, chunk in agent.stream(
                 {"messages": [{"role": "user", "content": user_text}]},
                 context=ctx,
@@ -98,7 +98,7 @@ def main() -> None:
             print("")  # quebra de linha ao final da resposta
         except Exception as e:
             print(f"\n[erro no streaming] {e}")
-            # dica comum: checar OPENAI_API_KEY no .env
+            # common hint: check your API key in .env
 
 if __name__ == "__main__":
     main()

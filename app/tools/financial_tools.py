@@ -1,5 +1,5 @@
 """
-Ferramentas financeiras com schemas Pydantic (sem classe), prontas para LangChain.
+Financial tools built with Pydantic schemas (no class), ready for LangChain.
 """
 from typing import Literal, Optional, List, Dict, Any, Callable
 from datetime import datetime, date
@@ -72,7 +72,7 @@ def _format_brl(value: float) -> str:
 def _make_add_transaction(store: PersistentSQLiteStore, user_id: str, thread_id: Optional[str]) -> StructuredTool:
     def run(amount: float, type: Literal["income", "expense"], category: Optional[str] = None, description: Optional[str] = None, date_str: Optional[str] = None) -> str:
         try:
-            # Inferir categoria se não fornecida
+            # Infer category if not provided
             if not category and description:
                 inferred_category, inferred_type = store.infer_category(description)
                 category = category or inferred_category
@@ -81,7 +81,7 @@ def _make_add_transaction(store: PersistentSQLiteStore, user_id: str, thread_id:
             elif not category:
                 category = "Outros"
 
-            # Converter string de data se fornecida
+            # Parse date string if provided
             transaction_date = None
             if date_str:
                 try:
@@ -239,6 +239,7 @@ def _make_get_category_summary(store: PersistentSQLiteStore, user_id: str) -> St
 def _make_search_transactions(store: PersistentSQLiteStore, user_id: str) -> StructuredTool:
     def run(search_term: str, limit: int = 5) -> str:
         try:
+            # Search among the latest N transactions
             all_transactions = store.list_transactions(user_id=user_id, limit=100)
             search_lower = search_term.lower()
             filtered: List[Dict[str, Any]] = []
@@ -277,6 +278,7 @@ def _make_search_transactions(store: PersistentSQLiteStore, user_id: str) -> Str
 def _make_update_transaction(store: PersistentSQLiteStore, user_id: str) -> StructuredTool:
     def run(transaction_id: int, amount: Optional[float] = None, type: Optional[Literal["income", "expense"]] = None, category: Optional[str] = None, description: Optional[str] = None, date_str: Optional[str] = None) -> str:
         try:
+            # Parse optional new date
             transaction_date = None
             if date_str:
                 try:
@@ -286,6 +288,7 @@ def _make_update_transaction(store: PersistentSQLiteStore, user_id: str) -> Stru
                         transaction_date = datetime.strptime(date_str, "%d/%m/%Y").date()
                     except ValueError:
                         pass
+            # Collect provided fields only
             fields: Dict[str, Any] = {}
             if amount is not None:
                 fields["amount"] = abs(amount)
