@@ -3,7 +3,7 @@ name = "financial-agent"
 version = "0.1.0"
 description = "Assistente financeiro em português brasileiro usando LangGraph"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "Arthur Granja", email = "your.email@example.com" }
 ]
@@ -15,7 +15,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
+    # Removed 3.9 due to langmem requiring >=3.10
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -29,6 +29,8 @@ dependencies = [
     "langchain-openai>=0.2.10",
     "langchain-anthropic>=0.2.8",
     "langchain-google-genai>=2.0.8",
+    "langmem>=0.0.29",
+    "numpy>=1.26",
 ]
 
 [project.optional-dependencies]
@@ -51,10 +53,10 @@ packages = ["app"]
 
 [tool.black]
 line-length = 88
-target-version = ['py39']
+target-version = ['py310']
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
