@@ -10,6 +10,8 @@ An intelligent assistant for personal finance tracking using LangGraph and LLMs,
 - 💾 **Full persistence** — Data stored in SQLite with SQLAlchemy ORM
 - 🔍 **Search and filters** — Quickly find specific transactions
 - 📈 **Category analysis** — Understand where most of your spending goes
+- 🧠 **Long‑term memories (langmem)** — The agent can create, search, and manage memories (facts/preferences) to tailor assistance over time
+- 🎨 **Colorful two‑panel CLI (Rich)** — Left panel shows tool calls and updates, right panel shows the chat stream
 
 ## 🚀 Installation
 
@@ -38,6 +40,7 @@ pip install -r requirements.txt
 # or with pyproject + uv
 # uv sync
 ```
+Note: `numpy` is recommended (already included) to accelerate vector operations for memory search.
 
 ### 4) Environment variables
 Create a `.env` file at the project root with your keys and settings:
@@ -56,7 +59,13 @@ TZ=America/Sao_Paulo
 USER_NAME=User
 CHECKPOINT_DB=checkpoint.db
 STORE_DB=financial_store.db
+
+# Long-term memory index (langmem + InMemoryStore)
+# Default uses OpenAI embeddings — set OPENAI_API_KEY if using defaults
+LMEM_EMBED_DIMS=1536
+LMEM_EMBED_MODEL=openai:text-embedding-3-small
 ```
+Tip: If you prefer not to use OpenAI embeddings, set `LMEM_EMBED_MODEL` to an alternative supported by your environment.
 
 ## 💬 Usage
 
@@ -68,6 +77,12 @@ python scripts/chat.py
 # or with uv (recommended)
 uv run scripts/chat.py
 ```
+
+When running, you'll see a two‑panel UI:
+- Left panel (cyan, titled "⚙️ Tools"): live updates about tool calls, including successes and errors
+- Right panel (magenta, titled "💬 Chat"): streaming model responses and your messages
+
+Commands: `/id`, `/history`, `/exit`
 
 ### Conversation examples
 ```
@@ -154,6 +169,11 @@ Two SQLite databases are used:
 - Maintains conversation context
 - Allows resuming sessions
 
+### Long‑term memories (vector index)
+- In this template, long‑term memories are stored in an in‑memory vector index (`InMemoryStore`) and are therefore ephemeral between process restarts.
+- The agent can call tools to create, update, delete, and search memories in the `("memories", USER_NAME)` namespace.
+- To persist memories across restarts, swap to a persistent store implementation compatible with LangGraph Stores.
+
 ## 🎨 Default categories
 
 ### Expenses
@@ -179,6 +199,16 @@ Two SQLite databases are used:
 # In agent.py, modify SYSTEM_PROMPT
 SYSTEM_PROMPT = "Your custom prompt here..."
 ```
+
+### Memory embeddings (langmem)
+```env
+# .env
+LMEM_EMBED_DIMS=1536
+LMEM_EMBED_MODEL=openai:text-embedding-3-small
+```
+Notes:
+- Using the default OpenAI embedding model requires `OPENAI_API_KEY` even if your chat model is Anthropic.
+- Install `numpy` (already included) for best vector search performance.
 
 ## 📈 Roadmap
 
