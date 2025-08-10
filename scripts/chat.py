@@ -40,8 +40,8 @@ def main() -> None:
     print(f"🧵 nova thread: {thread_id}")
     print(_format_cmds())
 
-    # Create agent (with sqlite checkpointer + persistent store)
-    agent, store = make_agent(thread_id=thread_id)
+    # Create agent (with sqlite checkpointer + persistent store + long-term memories)
+    agent, store = make_agent(user_id=user_id, thread_id=thread_id)
 
     # Friendly Ctrl+C
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
