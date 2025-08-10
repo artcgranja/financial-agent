@@ -93,9 +93,6 @@ def make_agent(
     Returns:
         Compiled agent and the persistent store
     """
-    # Configure user_id
-    if user_id is None:
-        user_id = USER_NAME
 
     # Initialize model
     model = init_chat_model(model_name, temperature=0)

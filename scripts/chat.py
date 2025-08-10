@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import sys
 import uuid
 import signal
@@ -6,6 +7,11 @@ from typing import Any, Iterable, Tuple
 
 from app.agent import make_agent
 from app.session import make_config, make_context, get_thread_state
+from dotenv import load_dotenv
+
+load_dotenv()
+
+USER_NAME = os.getenv("USER_NAME", "Usuário")
 
 # -------- helpers --------
 def _print_token_chunk(message_chunk: Any) -> None:
@@ -35,13 +41,12 @@ def _format_cmds() -> str:
 # -------- main loop --------
 def main() -> None:
     # New chat each run: thread_id = "user1:<uuid4>"
-    user_id = "user1"
-    thread_id = f"{user_id}:{uuid.uuid4()}"
+    thread_id = f"{USER_NAME}:{uuid.uuid4()}"
     print(f"🧵 nova thread: {thread_id}")
     print(_format_cmds())
 
     # Create agent (with sqlite checkpointer + persistent store + long-term memories)
-    agent, store = make_agent(user_id=user_id, thread_id=thread_id)
+    agent, store = make_agent(user_id=USER_NAME, thread_id=thread_id)
 
     # Friendly Ctrl+C
     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
@@ -66,16 +71,16 @@ def main() -> None:
             continue
 
         if user_text.lower() in ("/history", "history"):
-            snap = get_thread_state(agent, thread_id, user_id=user_id)
+            snap = get_thread_state(agent, thread_id, user_id=USER_NAME)
             ckpt = snap.config["configurable"].get("checkpoint_id")
             step = snap.metadata.get("step")
             print(f"checkpoint_id atual: {ckpt} | step: {step}")
             continue
 
         # Config and context for this run
-        cfg = make_config(thread_id, user_id=user_id)
+        cfg = make_config(thread_id, user_id=USER_NAME)
         ctx = make_context(
-            user_id=user_id,
+            user_id=USER_NAME,
             locale="pt-BR",
             currency="BRL",
             timezone="America/Sao_Paulo",
