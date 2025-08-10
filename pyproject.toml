@@ -31,6 +31,7 @@ dependencies = [
     "langchain-google-genai>=2.0.8",
     "langmem>=0.0.29",
     "numpy>=1.26",
+    "rich>=13.7",
 ]
 
 [project.optional-dependencies]
